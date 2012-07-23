@@ -13,6 +13,9 @@ package
 	import flash.display.StageScaleMode;
 	import flash.events.Event;
 	import flash.events.MouseEvent;
+	import flash.filesystem.File;
+	import flash.filesystem.FileMode;
+	import flash.filesystem.FileStream;
 	import flash.media.SoundMixer;
 	import flash.media.SoundTransform;
 	// TODO 複製前一 frame position
@@ -165,8 +168,30 @@ package
 		
 		private function onExportClick(e:MouseEvent ):void 
 		{
-			var xml:XML = new XML();
-			
+			//var xml:XML = new XML();
+			var docsDir:File = File.documentsDirectory;
+			try
+			{
+				docsDir.browseForSave("Save As");
+				docsDir.addEventListener(Event.SELECT, saveData);
+			}
+			catch (error:Error)
+			{
+				trace("Failed:", error.message);
+			}
+		}
+		
+		private function saveData(event:Event):void 
+		{
+			var newFile:File = event.target as File;
+			var str:String = "Hello.";
+			if (!newFile.exists)
+			{
+				var stream:FileStream = new FileStream();
+				stream.open(newFile, FileMode.WRITE);
+				stream.writeUTFBytes(str);
+				stream.close();
+			}
 		}
 		
 		private function onImportClick(e:MouseEvent ):void 
