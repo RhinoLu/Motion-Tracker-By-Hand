@@ -6,16 +6,17 @@
     <movie input="" />
     <movie path="bin\MotionTrackerByHand.swf" />
     <movie fps="30" />
-    <movie width="800" />
-    <movie height="600" />
+    <movie width="1000" />
+    <movie height="800" />
     <movie version="3" />
-    <movie minorVersion="1" />
+    <movie minorVersion="3" />
     <movie platform="AIR" />
     <movie background="#FFFFFF" />
   </output>
   <!-- Other classes to be compiled into your SWF -->
   <classpaths>
     <class path="src" />
+    <class path="lib" />
   </classpaths>
   <!-- Build options -->
   <build>
@@ -50,7 +51,10 @@
   </includeLibraries>
   <!-- SWC Libraries -->
   <libraryPaths>
-    <!-- example: <element path="..." /> -->
+    <element path="lib\as3corelib.swc" />
+    <element path="lib\as3-signals-v0.8.swc" />
+    <element path="lib\greensock.swc" />
+    <element path="lib\MinimalComps_0_9_10.swc" />
   </libraryPaths>
   <!-- External Libraries -->
   <externalLibraryPaths>
