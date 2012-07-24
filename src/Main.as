@@ -25,6 +25,7 @@ package
 	import flash.media.SoundTransform;
 	import flash.net.FileFilter;
 	import flash.net.FileReference;
+	import net.hires.debug.Stats;
 	// TODO 複製前一 frame position
 	/**
 	 * 每次處理一個編號
@@ -44,6 +45,8 @@ package
 		private var clipYText:InputText; // ----------- clip y value
 		private var updateButton:PushButton; // ------- 更新座標
 		
+		private var loadMovieButton:PushButton; // ---- 載入挖洞影片
+		private var loadMovieColorButton:PushButton; // ---- 載入色版影片
 		private var finalRadio:RadioButton; // -------- 挖洞影片
 		private var colorRadio:RadioButton; // -------- 有色版影片
 		
@@ -55,8 +58,10 @@ package
 		
 		private var frameSlider:MyHUISlider; // ------- 目前 frmae
 		
-		private var movie_container:Sprite; // -------- 影片容器
-		private var movie:MovieClip; // --------------- 影片
+		private var movie_container:Sprite; // -------- 挖洞影片容器
+		private var movie:MovieClip; // --------------- 挖洞影片
+		private var movie_color_container:Sprite; // ------- 色版影片容器
+		private var movieColor:MovieClip; // --------------- 色版影片
 		
 		private var p4:Point4;
 		private var point4_container:Sprite; // ------- 四點對位容器
@@ -78,21 +83,23 @@ package
 			stage.scaleMode = StageScaleMode.NO_SCALE;
 			stage.stageFocusRect = false; // 防止按 tab 出現黃框
 			
-			exportButton = new PushButton(this, 10, 10, "Export", onExportClick);
+			exportButton = new PushButton(this, 80, 10, "Export XML", onExportClick);
 			exportButton.enabled = false;
-			importButton = new PushButton(this, 10, 35, "Import", onImportClick);
+			importButton = new PushButton(this, 80, 35, "Import XML", onImportClick);
 			//importButton.enabled = false;
 			
-			numberText = new InputText(this , 200, 10, "Number");
-			numberText.restrict = "0-9";
-			startText = new InputText(this , 200, 30, "Start at");
-			startText.restrict = "0-9";
-			endText = new InputText(this , 200, 50, "End at");
-			endText.restrict = "0-9";
-			addButton = new PushButton(this, 200, 70, "Add" , onAddClick);
+			loadMovieButton      = new PushButton(this, 250, 10, "Load Final", onLoadMovie);
+			loadMovieColorButton = new PushButton(this, 250, 35, "Load Color", onLoadMovieColor);
+			finalRadio = new RadioButton(this, 350, 10, "final",  true, onRadioClick);
+			colorRadio = new RadioButton(this, 350, 25, "color", false, onRadioClick);
 			
-			finalRadio = new RadioButton(this, 400, 10, "final",  true, onRadioClick);
-			colorRadio = new RadioButton(this, 400, 25, "color", false, onRadioClick);
+			numberText = new InputText(this , 400, 10, "Number");
+			numberText.restrict = "0-9";
+			startText = new InputText(this , 400, 30, "Start at");
+			startText.restrict = "0-9";
+			endText = new InputText(this , 400, 50, "End at");
+			endText.restrict = "0-9";
+			addButton = new PushButton(this, 400, 70, "Add" , onAddClick);
 			
 			musicButton  = new PushButton(this, 860, 10, "Music ON", onMusicClick);
 			musicButton.toggle = true;
@@ -131,13 +138,62 @@ package
 			movie_container.y = 100;
 			addChild(movie_container);
 			
-			var swfLoader:SWFLoader = new SWFLoader("movie.swf", new SWFLoaderVars().container(movie_container).onComplete(onSWFLoadComplete).vars);
-			swfLoader.load();
+			movie_color_container = new Sprite();
+			movie_color_container.x = 0;
+			movie_color_container.y = 100;
+			addChild(movie_color_container);
+			
+			//var swfLoader:SWFLoader = new SWFLoader("movie.swf", new SWFLoaderVars().container(movie_container).onComplete(onSWFLoadComplete).vars);
+			//swfLoader.load();
 			
 			point4_container = new Sprite();
 			point4_container.x = movie_container.x;
 			point4_container.y = movie_container.y;
 			addChild(point4_container);
+			
+			addChild(new Stats());
+		}
+		
+		private var fileMovie:FileReference = new FileReference();
+		private function onLoadMovie(e:MouseEvent):void
+		{
+			fileMovie.addEventListener(Event.SELECT, onMovieSelect);
+			fileMovie.addEventListener(Event.COMPLETE, onMovieComplete);
+            fileMovie.browse([new FileFilter("SWF", "*.swf")]);
+		}
+		
+		private function onMovieSelect(e:Event):void
+		{
+            //trace("onMovieSelect: name=" + fileImport.name);
+			fileMovie.load();
+        }
+		
+		private function onMovieComplete(e:Event):void
+		{
+            //trace("onMovieComplete: " + e.target);
+			var loader:Loader = new Loader();
+			loader.contentLoaderInfo.addEventListener(Event.COMPLETE, onLoadMovieComplete);
+			loader.loadBytes(fileMovie.data);
+        }
+		
+		private function onLoadMovieComplete(e:Event):void 
+		{
+			var loader:Loader = e.target.loader;
+			if (loader.loaderInfo.applicationDomain.hasDefinition("MovieMC")) {
+				var _class:Class = loader.loaderInfo.applicationDomain.getDefinition("MovieMC") as Class;
+				movie = new _class();
+				movie.stop();
+				movie_container.addChild(movie);
+				frameSlider.maximum = movie.totalFrames;
+				initPositionVector();
+			}else {
+				// error
+			}
+		}
+		
+		private function onLoadMovieColor(e:MouseEvent):void
+		{
+			
 		}
 		
 		private function initPositionVector():void 
@@ -229,7 +285,6 @@ package
 		private var fileImport:FileReference = new FileReference();
 		private function onImportClick(e:MouseEvent ):void 
 		{
-			
             fileImport.addEventListener(Event.SELECT, onImportSelect);
 			fileImport.addEventListener(Event.COMPLETE, onImportComplete);
 			//fileImport.addEventListener(ProgressEvent.PROGRESS, onImportProgress);
@@ -289,6 +344,8 @@ package
 			endText.text    = String(end);
 			//trace(num, start, end);
 			addPoint4(num, start, end, false);
+			
+			importButton.enabled = false;
 		}
 		
 		private function addPoint4(num:uint, start:uint, end:uint, isImport:Boolean):void
