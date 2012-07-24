@@ -4,20 +4,26 @@ package
 	import com.bit101.components.HUISlider;
 	import com.bit101.components.InputText;
 	import com.bit101.components.PushButton;
+	import com.bit101.components.RadioButton;
 	import com.greensock.events.LoaderEvent;
 	import com.greensock.loading.data.SWFLoaderVars;
 	import com.greensock.loading.SWFLoader;
+	import flash.display.DisplayObject;
+	import flash.display.Loader;
 	import flash.display.MovieClip;
 	import flash.display.Sprite;
 	import flash.display.StageAlign;
 	import flash.display.StageScaleMode;
 	import flash.events.Event;
 	import flash.events.MouseEvent;
+	import flash.events.ProgressEvent;
 	import flash.filesystem.File;
 	import flash.filesystem.FileMode;
 	import flash.filesystem.FileStream;
+	import flash.geom.Point;
 	import flash.media.SoundMixer;
 	import flash.media.SoundTransform;
+	import flash.net.FileFilter;
 	import flash.net.FileReference;
 	// TODO 複製前一 frame position
 	/**
@@ -37,6 +43,9 @@ package
 		private var clipXText:InputText; // ----------- clip x value
 		private var clipYText:InputText; // ----------- clip y value
 		private var updateButton:PushButton; // ------- 更新座標
+		
+		private var finalRadio:RadioButton; // -------- 挖洞影片
+		private var colorRadio:RadioButton; // -------- 有色版影片
 		
 		private var playButton:PushButton; // --------- 播放/停止
 		private var prevButton:PushButton; // --------- 上一格
@@ -72,15 +81,18 @@ package
 			exportButton = new PushButton(this, 10, 10, "Export", onExportClick);
 			exportButton.enabled = false;
 			importButton = new PushButton(this, 10, 35, "Import", onImportClick);
-			importButton.enabled = false;
+			//importButton.enabled = false;
 			
-			numberText = new InputText(this , 310, 10, "Number");
+			numberText = new InputText(this , 200, 10, "Number");
 			numberText.restrict = "0-9";
-			startText = new InputText(this , 310, 30, "Start at");
+			startText = new InputText(this , 200, 30, "Start at");
 			startText.restrict = "0-9";
-			endText = new InputText(this , 310, 50, "End at");
+			endText = new InputText(this , 200, 50, "End at");
 			endText.restrict = "0-9";
-			addButton = new PushButton(this, 310, 70, "Add" , onAddClick);
+			addButton = new PushButton(this, 200, 70, "Add" , onAddClick);
+			
+			finalRadio = new RadioButton(this, 400, 10, "final",  true, onRadioClick);
+			colorRadio = new RadioButton(this, 400, 25, "color", false, onRadioClick);
 			
 			musicButton  = new PushButton(this, 860, 10, "Music ON", onMusicClick);
 			musicButton.toggle = true;
@@ -139,6 +151,7 @@ package
 		
 		private function checkFrame():void
 		{
+			//trace("checkFrame : " + movie.currentFrame);
 			if (!position_vector || !p4) return;
 			if (position_vector[movie.currentFrame-1]) {
 				p4.result = position_vector[movie.currentFrame-1];
@@ -170,7 +183,9 @@ package
 			var swfLoader:SWFLoader = e.target as SWFLoader;
 			var _class:Class = swfLoader.getClass("MovieMC") as Class;
 			movie = new _class();
+			movie.stop();
 			movie_container.addChild(movie);
+			frameSlider.maximum = movie.totalFrames
 			initPositionVector();
 		}
 		
@@ -178,15 +193,24 @@ package
 		{
 			frameSlider.value = movie.currentFrame;
 			checkFrame();
+			/*trace("onMovieFrame : " + movie.currentFrame);
+			if (movie.currentFrame == movie.totalFrames) {
+				movie.removeEventListener(Event.ENTER_FRAME, onMovieFrame);
+				movie.stop();
+				playButton.label = "Play";
+				playButton.selected = false;
+			}*/
 		}
 		
 		private function onExportClick(e:MouseEvent ):void 
 		{
+			var num:uint = int(numberText.text);
 			var start:uint = int(startText.text);
 			var end:uint   = int(endText.text);
 			
 			var xml:XML = 
 				<data>
+					<num>{num}</num>
 					<start>{start}</start>
 					<end>{end}</end>
 				</data>
@@ -195,27 +219,80 @@ package
 			{
 				var pts:Array = position_vector[i].pts;
 				var str:String = pts[0].x + "," + pts[0].y + "," + pts[1].x + "," + pts[1].y + "," + pts[2].x + "," + pts[2].y + "," + pts[3].x + "," + pts[3].y;
-				xml.appendChild(<frame>{str}</frame>);
+				xml.appendChild(<f>{str}</f>);
 			}
 			
 			var file:FileReference = new FileReference();
 			file.save(xml, numberText.text + ".xml");
 		}
 		
+		private var fileImport:FileReference = new FileReference();
 		private function onImportClick(e:MouseEvent ):void 
 		{
 			
+            fileImport.addEventListener(Event.SELECT, onImportSelect);
+			fileImport.addEventListener(Event.COMPLETE, onImportComplete);
+			//fileImport.addEventListener(ProgressEvent.PROGRESS, onImportProgress);
+            fileImport.browse([new FileFilter("XML", "*.xml")]);
 		}
+		
+		private function onImportSelect(e:Event):void
+		{
+            //trace("onImportSelect: name=" + fileImport.name);
+			fileImport.load();
+        }
+		/*
+		private function onImportProgress(e:ProgressEvent):void
+		{
+            trace("onImportProgress: name=" + fileImport.name + " bytesLoaded=" + e.bytesLoaded + " bytesTotal=" + e.bytesTotal);
+        }*/
+		
+		private function onImportComplete(e:Event):void
+		{
+            //trace("onImportComplete: " + e.target.data);
+			var xml:XML = XML(e.target.data);
+			//trace(xml);
+			numberText.text = String(xml.num);
+			startText.text = String(xml.start);
+			endText.text = String(xml.end);
+			var num:uint = int(xml.num);
+			var start:uint = int(xml.start);
+			var end:uint   = int(xml.end);
+			for (var i:int = 0; i < end - start + 1; i++) 
+			{
+				var array:Array = String(xml.f[i]).split(",");
+				//trace(array);
+				var value:Object = { };
+				value.pts = [];
+				value.pts[0] = new Point(array[0], array[1]);
+				value.pts[1] = new Point(array[2], array[3]);
+				value.pts[2] = new Point(array[4], array[5]);
+				value.pts[3] = new Point(array[6], array[7]);
+				//trace(i + start);
+				position_vector[i + start] = value;
+			}
+			addPoint4(num, start, end, true);
+			//t.obj(position_vector[0]);
+        }
 		
 		private function onAddClick(e:MouseEvent ):void 
 		{
 			var num:uint   = int(numberText.text);
 			var start:uint = int(startText.text);
 			var end:uint   = int(endText.text);
+			if (end > movie.totalFrames - 1) {
+				end = movie.totalFrames - 1;
+				endText.text = String(end);
+			}
 			numberText.text = String(num);
 			startText.text  = String(start);
 			endText.text    = String(end);
 			//trace(num, start, end);
+			addPoint4(num, start, end, false);
+		}
+		
+		private function addPoint4(num:uint, start:uint, end:uint, isImport:Boolean):void
+		{
 			if (num > -1 && start > -1 && end > -1) {
 				if (start <= end) {
 					numberText.enabled = startText.enabled = endText.enabled = addButton.enabled = false;
@@ -224,11 +301,17 @@ package
 					p4.signal.add(onP4Call);
 					point4_container.addChild(p4);
 					
-					for (var i:int = start; i < end + 1; i++) 
-					{
-						position_vector[i] = p4.result;
+					if (!isImport) {
+						for (var i:int = start; i < end + 1; i++) 
+						{
+							position_vector[i] = p4.result;
+						}
 					}
 					
+					movie.addFrameScript(start, function():void {
+						movie.addFrameScript(movie.currentFrame-1, null);
+						checkFrame();
+					} );
 					movie.gotoAndStop(start + 1);
 					frameSlider.value = start + 1;
 					
@@ -251,9 +334,10 @@ package
 		
 		private function onStageClick(e:MouseEvent):void
 		{
-			//trace("onStageClick");
+			//trace("onStageClick : " + e.target);
 			var p:PointClip = e.target as PointClip;
-			if (e.target == clipXText || e.target == clipYText || e.target == updateButton || p) {
+			//if(new Rectangle(_list.x, _list.y, _list.width, _list.height).contains(event.stageX, event.stageY)) return;
+			if (e.target == clipXText || clipXText.contains(e.target as DisplayObject) || e.target == clipYText || clipYText.contains(e.target as DisplayObject) || e.target == updateButton || p) {
 				if (p) {
 					focusClip = p;
 					clipXText.enabled = clipYText.enabled = updateButton.enabled = true;
@@ -276,7 +360,16 @@ package
 				focusClip.x = Number(clipXText.text);
 				focusClip.y = Number(clipYText.text);
 				p4.update();
+				position_vector[movie.currentFrame-1] = p4.result;
 			}
+		}
+		
+		private function onRadioClick(e:MouseEvent ):void 
+		{
+			
+			var radio:RadioButton = e.target as RadioButton;
+			trace(radio);
+			
 		}
 		
 		private function onShowClick(e:MouseEvent ):void 
@@ -310,7 +403,11 @@ package
 				movie.removeEventListener(Event.ENTER_FRAME, onMovieFrame);
 			}else {
 				playButton.label = "Stop";
-				movie.play();
+				//if (movie.currentFrame == movie.totalFrames) {
+					//movie.gotoAndPlay(2); // 因為第 1 格有下 stop();
+				//}else {
+					movie.play();
+				//}
 				movie.addEventListener(Event.ENTER_FRAME, onMovieFrame);
 			}
 		}
