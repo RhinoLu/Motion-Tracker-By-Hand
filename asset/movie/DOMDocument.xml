@@ -3,7 +3,7 @@
           <DOMVideoItem name="final_slow_final_42.flv" itemID="500cd455-000001e2" sourceExternalFilepath="E:/project/2012/04_英特美_Omusic/material/video/final_slow_final_42.flv" sourceLastImported="1342176214" videoDataHRef="M 1 1343018069.dat" videoType="vp6 alpha media" fps="30" rate="44100" bits="16" channels="2" width="960" height="420" length="42.4333333333333"/>
      </media>
      <symbols>
-          <Include href="MovieMC.xml" itemID="500cd414-000001d8" lastModified="1343018086"/>
+          <Include href="MovieMC.xml" itemID="500cd414-000001d8" lastModified="1343115918"/>
      </symbols>
      <timelines>
           <DOMTimeline name="Scene 1">
@@ -12,7 +12,7 @@
                          <frames>
                               <DOMFrame index="0" keyMode="9728">
                                    <elements>
-                                        <DOMSymbolInstance libraryItemName="MovieMC" centerPoint3DX="480" centerPoint3DY="210">
+                                        <DOMSymbolInstance libraryItemName="MovieMC" selected="true" centerPoint3DX="480" centerPoint3DY="210">
                                              <transformationPoint>
                                                   <Point/>
                                              </transformationPoint>
