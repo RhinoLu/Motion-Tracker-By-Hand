@@ -16,6 +16,9 @@ package
 	
 	public class Point4 extends Sprite 
 	{
+		public static const POSITION_UPDATE:String = "position update";
+		public static const FOCUS_UPDATE:String = "focus update";
+		
 		private var p0:PointClip; // --- 左上
 		private var p1:PointClip; // --- 右上
 		private var p2:PointClip; // --- 右下
@@ -27,10 +30,13 @@ package
 		
 		private var _signal:Signal = new Signal();
 		
+		private var _movieWidth:Number;
+		private var _movieHeight:Number;
+		
 		public function Point4(id:uint, movieWidth:Number = 960, movieHeight:Number = 420) 
 		{
-			x = movieWidth * 0.5;
-			y = movieHeight * 0.5;
+			_movieWidth = movieWidth;
+			_movieHeight = movieHeight;
 			
 			var format:TextFormat = new TextFormat();
             format.font = "Verdana";
@@ -51,12 +57,16 @@ package
 			removeEventListener(Event.ADDED_TO_STAGE, init);
 			addEventListener(Event.REMOVED_FROM_STAGE, onRemove);
 			
-			p0 = new PointClip(this, -100, -100);
-			p1 = new PointClip(this,  100, -100);
-			p2 = new PointClip(this,  100,  100);
-			p3 = new PointClip(this, -100,  100);
+			var halfWidth:Number = _movieWidth * 0.5;
+			var halfHeight:Number = _movieHeight * 0.5;
+			
+			p0 = new PointClip(this, halfWidth - 100, halfHeight - 100);
+			p1 = new PointClip(this, halfWidth + 100, halfHeight - 100);
+			p2 = new PointClip(this, halfWidth + 100, halfHeight + 100);
+			p3 = new PointClip(this, halfWidth - 100, halfHeight + 100);
 			
 			shapeSprite = new Sprite();
+			shapeSprite.alpha = 0.5;
 			addChildAt(shapeSprite, 0);
 			
 			_bitmapData = new BitmapData(_text.textWidth, _text.textHeight, false, 0x00FF00);
@@ -70,8 +80,6 @@ package
 			
 			addEventListener("ON_DOWN", onPointDown);
 			addEventListener("ON_UP"  , onPointUp);
-			
-			shapeSprite.addEventListener(MouseEvent.MOUSE_DOWN, onDown);
 		}
 		
 		private function onRemove(e:Event):void 
@@ -79,7 +87,6 @@ package
 			removeEventListener(Event.REMOVED_FROM_STAGE, onRemove);
 			_bitmapData.dispose();
 			stopDrag();
-			stage.removeEventListener(MouseEvent.MOUSE_UP, onUp);
 			removeEventListener("ON_DOWN", onPointDown);
 			removeEventListener("ON_UP"  , onPointUp);
 		}
@@ -92,20 +99,7 @@ package
 		private function onPointUp(e:Event):void 
 		{
 			removeEventListener(Event.ENTER_FRAME, drawRect);
-			_signal.dispatch("UPDATE");
-		}
-		
-		private function onDown(e:Event):void 
-		{
-			startDrag();
-			stage.addEventListener(MouseEvent.MOUSE_UP, onUp);
-		}
-		
-		private function onUp(e:MouseEvent):void 
-		{
-			stopDrag();
-			stage.removeEventListener(MouseEvent.MOUSE_UP, onUp);
-			_signal.dispatch("UPDATE");
+			_signal.dispatch(Point4.POSITION_UPDATE);
 		}
 		
 		private function drawRect(e:Event = null):void
@@ -118,8 +112,6 @@ package
 			//trace("get");
 			// TODO : Global convert
 			var value:Object = { };
-			value.x = this.x;
-			value.y = this.y;
 			value.pts = [];
 			value.pts[0] = new Point(p0.x, p0.y);
 			value.pts[1] = new Point(p1.x, p1.y);
@@ -132,8 +124,6 @@ package
 		public function set result(value:Object):void 
 		{
 			//trace("set");
-			this.x = value.x;
-			this.y = value.y;
 			p0.x = value.pts[0].x;
 			p0.y = value.pts[0].y;
 			p1.x = value.pts[1].x;
@@ -149,69 +139,10 @@ package
 		{
 			return _signal;
 		}
-	}
-}
-
-import flash.display.DisplayObjectContainer;
-import flash.display.Graphics;
-import flash.display.Shape;
-import flash.display.Sprite;
-import flash.events.Event;
-import flash.events.MouseEvent;
-
-class PointClip extends Sprite
-{
-	public function PointClip(parent:DisplayObjectContainer, xpos:Number = 0, ypos:Number = 0) 
-	{
-		x = xpos;
-		y = ypos;
-		parent.addChild(this);
-		stage?init():addEventListener(Event.ADDED_TO_STAGE, init);
-	}
-	
-	private function init(e:Event = null):void 
-	{
-		removeEventListener(Event.ADDED_TO_STAGE, init);
-		addEventListener(Event.REMOVED_FROM_STAGE, onRemove);
 		
-		drawCross();
-		
-		addEventListener(MouseEvent.MOUSE_DOWN, onDown);
-	}
-	
-	private function onRemove(e:Event):void 
-	{
-		removeEventListener(Event.REMOVED_FROM_STAGE, onRemove);
-		stopDrag();
-		stage.removeEventListener(MouseEvent.MOUSE_UP, onUp);
-	}
-	
-	private function drawCross():void 
-	{
-		var g:Graphics = graphics;
-		
-		g.beginFill(0xFFFF00, 0.5);
-		g.drawCircle(0, 0, 5);
-		g.endFill();
-		
-		g.lineStyle(1, 0xFF0000, 1);
-		g.moveTo( -5, 0);
-		g.lineTo(5, 0);
-		g.moveTo( 0, -5);
-		g.lineTo(0, 5);
-	}
-	
-	private function onDown(e:MouseEvent):void 
-	{
-		startDrag();
-		stage.addEventListener(MouseEvent.MOUSE_UP, onUp);
-		dispatchEvent(new Event("ON_DOWN", true));
-	}
-	
-	private function onUp(e:MouseEvent):void 
-	{
-		stopDrag();
-		stage.removeEventListener(MouseEvent.MOUSE_UP, onUp);
-		dispatchEvent(new Event("ON_UP", true));
+		public function update():void
+		{
+			drawRect();
+		}
 	}
 }

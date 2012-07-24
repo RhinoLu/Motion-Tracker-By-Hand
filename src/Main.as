@@ -18,6 +18,7 @@ package
 	import flash.filesystem.FileStream;
 	import flash.media.SoundMixer;
 	import flash.media.SoundTransform;
+	import flash.net.FileReference;
 	// TODO 複製前一 frame position
 	/**
 	 * 每次處理一個編號
@@ -30,9 +31,12 @@ package
 		private var startText:InputText; // ----------- 起始 frame
 		private var endText:InputText; // ------------- 結束 frame
 		private var addButton:PushButton; // ---------- 加入四點對位
-		private var removeButton:PushButton; // ------- 移除某四點對位
 		private var showButton:PushButton; // --------- 顯示或隱藏四點對位
 		private var musicButton:PushButton; // -------- 音樂開關
+		
+		private var clipXText:InputText; // ----------- clip x value
+		private var clipYText:InputText; // ----------- clip y value
+		private var updateButton:PushButton; // ------- 更新座標
 		
 		private var playButton:PushButton; // --------- 播放/停止
 		private var prevButton:PushButton; // --------- 上一格
@@ -50,6 +54,8 @@ package
 		
 		private var position_vector:Vector.<Object>;
 		
+		private var focusClip:PointClip;
+		
 		public function Main():void 
 		{
 			stage?init():addEventListener(Event.ADDED_TO_STAGE, init);
@@ -63,8 +69,9 @@ package
 			stage.scaleMode = StageScaleMode.NO_SCALE;
 			stage.stageFocusRect = false; // 防止按 tab 出現黃框
 			
-			exportButton = new PushButton(this,  10, 10, "Export", onExportClick);
-			importButton = new PushButton(this, 160, 10, "Import", onImportClick);
+			exportButton = new PushButton(this, 10, 10, "Export", onExportClick);
+			exportButton.enabled = false;
+			importButton = new PushButton(this, 10, 35, "Import", onImportClick);
 			importButton.enabled = false;
 			
 			numberText = new InputText(this , 310, 10, "Number");
@@ -73,16 +80,14 @@ package
 			startText.restrict = "0-9";
 			endText = new InputText(this , 310, 50, "End at");
 			endText.restrict = "0-9";
-			addButton = new PushButton(this, 415, 50, "Add" , onAddClick);
+			addButton = new PushButton(this, 310, 70, "Add" , onAddClick);
 			
-			removeButton = new PushButton(this, 565, 10, "Remove", onRemoveClick);
-			removeButton.enabled = false;
-			showButton   = new PushButton(this, 710, 10, "Show Point4", onShowClick);
-			showButton.toggle = true;
-			showButton.selected = true;
 			musicButton  = new PushButton(this, 860, 10, "Music ON", onMusicClick);
 			musicButton.toggle = true;
 			musicButton.selected = true;
+			showButton   = new PushButton(this, 860, 35, "Show Point4", onShowClick);
+			showButton.toggle = true;
+			showButton.selected = true;
 			
 			playButton = new PushButton(this,  10, 700, "Play", onPlayClick);
 			playButton.toggle = true;
@@ -99,6 +104,15 @@ package
 			frameSlider.width = 990;
 			frameSlider.addEventListener("ON_DRAG", onFrameSliderDrag);
 			frameSlider.addEventListener("ON_DROP", onFrameSliderDrop);
+			
+			clipXText = new InputText(this , 565, 10);
+			clipXText.restrict = "0-9 . \\-";
+			clipXText.enabled = false;
+			clipYText = new InputText(this , 565, 30);
+			clipYText.restrict = "0-9 . \\-";
+			clipYText.enabled = false;
+			updateButton = new PushButton(this, 565, 50, "Update", onUpdateClick);
+			updateButton.enabled = false;
 			
 			movie_container = new Sprite();
 			movie_container.x = 0;
@@ -168,30 +182,24 @@ package
 		
 		private function onExportClick(e:MouseEvent ):void 
 		{
-			//var xml:XML = new XML();
-			var docsDir:File = File.documentsDirectory;
-			try
+			var start:uint = int(startText.text);
+			var end:uint   = int(endText.text);
+			
+			var xml:XML = 
+				<data>
+					<start>{start}</start>
+					<end>{end}</end>
+				</data>
+			
+			for (var i:int = start; i < end + 1; i++) 
 			{
-				docsDir.browseForSave("Save As");
-				docsDir.addEventListener(Event.SELECT, saveData);
+				var pts:Array = position_vector[i].pts;
+				var str:String = pts[0].x + "," + pts[0].y + "," + pts[1].x + "," + pts[1].y + "," + pts[2].x + "," + pts[2].y + "," + pts[3].x + "," + pts[3].y;
+				xml.appendChild(<frame>{str}</frame>);
 			}
-			catch (error:Error)
-			{
-				trace("Failed:", error.message);
-			}
-		}
-		
-		private function saveData(event:Event):void 
-		{
-			var newFile:File = event.target as File;
-			var str:String = "Hello.";
-			if (!newFile.exists)
-			{
-				var stream:FileStream = new FileStream();
-				stream.open(newFile, FileMode.WRITE);
-				stream.writeUTFBytes(str);
-				stream.close();
-			}
+			
+			var file:FileReference = new FileReference();
+			file.save(xml, numberText.text + ".xml");
 		}
 		
 		private function onImportClick(e:MouseEvent ):void 
@@ -223,6 +231,9 @@ package
 					
 					movie.gotoAndStop(start + 1);
 					frameSlider.value = start + 1;
+					
+					stage.addEventListener(MouseEvent.CLICK, onStageClick);
+					exportButton.enabled = true;
 				}else {
 					// error
 				}
@@ -233,14 +244,39 @@ package
 		
 		private function onP4Call(type:String, obj:*= null):void 
 		{
-			if (type == "UPDATE") {
+			if (type == Point4.POSITION_UPDATE) {
 				position_vector[movie.currentFrame-1] = p4.result;
 			}
 		}
 		
-		private function onRemoveClick(e:MouseEvent ):void 
+		private function onStageClick(e:MouseEvent):void
 		{
-			
+			//trace("onStageClick");
+			var p:PointClip = e.target as PointClip;
+			if (e.target == clipXText || e.target == clipYText || e.target == updateButton || p) {
+				if (p) {
+					focusClip = p;
+					clipXText.enabled = clipYText.enabled = updateButton.enabled = true;
+					clipXText.text = String(focusClip.x);
+					clipYText.text = String(focusClip.y);
+				}
+			}else {
+				focusClip = null;
+				clipXText.enabled = clipYText.enabled = updateButton.enabled = false;
+				clipXText.text = "";
+				clipYText.text = "";
+			}
+		}
+		
+		private function onUpdateClick(e:MouseEvent):void
+		{
+			//trace("onUpdateClick");
+			// 此動作先於 onStageClick
+			if (focusClip) {
+				focusClip.x = Number(clipXText.text);
+				focusClip.y = Number(clipYText.text);
+				p4.update();
+			}
 		}
 		
 		private function onShowClick(e:MouseEvent ):void 
