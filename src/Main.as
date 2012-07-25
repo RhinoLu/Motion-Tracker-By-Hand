@@ -1,31 +1,26 @@
 package 
 {
-	import com.bit101.components.ComboBox;
-	import com.bit101.components.HUISlider;
 	import com.bit101.components.InputText;
 	import com.bit101.components.PushButton;
 	import com.bit101.components.RadioButton;
-	import com.greensock.events.LoaderEvent;
-	import com.greensock.loading.data.SWFLoaderVars;
-	import com.greensock.loading.SWFLoader;
 	import flash.display.DisplayObject;
 	import flash.display.Loader;
+	import flash.display.LoaderInfo;
 	import flash.display.MovieClip;
 	import flash.display.Sprite;
 	import flash.display.StageAlign;
 	import flash.display.StageScaleMode;
 	import flash.events.Event;
 	import flash.events.MouseEvent;
-	import flash.events.ProgressEvent;
-	import flash.filesystem.File;
-	import flash.filesystem.FileMode;
-	import flash.filesystem.FileStream;
 	import flash.geom.Point;
 	import flash.media.SoundMixer;
 	import flash.media.SoundTransform;
 	import flash.net.FileFilter;
 	import flash.net.FileReference;
+	import flash.system.ApplicationDomain;
+	import flash.system.LoaderContext;
 	import net.hires.debug.Stats;
+	
 	// TODO 複製前一 frame position
 	/**
 	 * 每次處理一個編號
@@ -46,7 +41,7 @@ package
 		private var updateButton:PushButton; // ------- 更新座標
 		
 		private var loadMovieButton:PushButton; // ---- 載入挖洞影片
-		private var loadMovieColorButton:PushButton; // ---- 載入色版影片
+		private var loadMovieColorButton:PushButton; // 載入色版影片
 		private var finalRadio:RadioButton; // -------- 挖洞影片
 		private var colorRadio:RadioButton; // -------- 有色版影片
 		
@@ -56,12 +51,17 @@ package
 		private var jumpButton:PushButton; // --------- 跳至某 frame
 		private var frameText:InputText; // ----------- 目標 frame
 		
-		private var frameSlider:MyHUISlider; // ------- 目前 frmae
+		private var fileMovie:FileReference = new FileReference(); // 提出來避免被GC
+		private var movieType:String; // -------------- 
+		private var currentMovie:MovieClip; // -------- 
+		private var totalFrames:uint; // -------------- 
+		
+		private var frameSlider:MyHUISlider; // ------- 目前 frmaeUI
 		
 		private var movie_container:Sprite; // -------- 挖洞影片容器
 		private var movie:MovieClip; // --------------- 挖洞影片
-		private var movie_color_container:Sprite; // ------- 色版影片容器
-		private var movieColor:MovieClip; // --------------- 色版影片
+		private var movie_color_container:Sprite; // -- 色版影片容器
+		private var movieColor:MovieClip; // ---------- 色版影片
 		
 		private var p4:Point4;
 		private var point4_container:Sprite; // ------- 四點對位容器
@@ -88,10 +88,12 @@ package
 			importButton = new PushButton(this, 80, 35, "Import XML", onImportClick);
 			//importButton.enabled = false;
 			
-			loadMovieButton      = new PushButton(this, 250, 10, "Load Final", onLoadMovie);
-			loadMovieColorButton = new PushButton(this, 250, 35, "Load Color", onLoadMovieColor);
-			finalRadio = new RadioButton(this, 350, 10, "final",  true, onRadioClick);
-			colorRadio = new RadioButton(this, 350, 25, "color", false, onRadioClick);
+			loadMovieButton      = new PushButton(this, 200, 10, "Load Final", onLoadFinalMovie);
+			loadMovieColorButton = new PushButton(this, 200, 35, "Load Color", onLoadColorMovie);
+			finalRadio = new RadioButton(this, 310, 10, "final",  true, onRadioClick);
+			finalRadio.enabled = false;
+			colorRadio = new RadioButton(this, 310, 25, "color", false, onRadioClick);
+			colorRadio.enabled = false;
 			
 			numberText = new InputText(this , 400, 10, "Number");
 			numberText.restrict = "0-9";
@@ -142,9 +144,7 @@ package
 			movie_color_container.x = 0;
 			movie_color_container.y = 100;
 			addChild(movie_color_container);
-			
-			//var swfLoader:SWFLoader = new SWFLoader("movie.swf", new SWFLoaderVars().container(movie_container).onComplete(onSWFLoadComplete).vars);
-			//swfLoader.load();
+			movie_color_container.visible = false;
 			
 			point4_container = new Sprite();
 			point4_container.x = movie_container.x;
@@ -154,8 +154,19 @@ package
 			addChild(new Stats());
 		}
 		
-		private var fileMovie:FileReference = new FileReference();
-		private function onLoadMovie(e:MouseEvent):void
+		private function onLoadFinalMovie(e:MouseEvent):void
+		{
+			movieType = "final";
+			loadMovie();
+		}
+		
+		private function onLoadColorMovie(e:MouseEvent):void
+		{
+			movieType = "color";
+			loadMovie();
+		}
+		
+		private function loadMovie():void
 		{
 			fileMovie.addEventListener(Event.SELECT, onMovieSelect);
 			fileMovie.addEventListener(Event.COMPLETE, onMovieComplete);
@@ -164,7 +175,7 @@ package
 		
 		private function onMovieSelect(e:Event):void
 		{
-            //trace("onMovieSelect: name=" + fileImport.name);
+            //trace("onMovieSelect: name=" + fileMovie.name);
 			fileMovie.load();
         }
 		
@@ -173,33 +184,52 @@ package
             //trace("onMovieComplete: " + e.target);
 			var loader:Loader = new Loader();
 			loader.contentLoaderInfo.addEventListener(Event.COMPLETE, onLoadMovieComplete);
-			loader.loadBytes(fileMovie.data);
+			var lc:LoaderContext = new LoaderContext(false, new ApplicationDomain(ApplicationDomain.currentDomain), null);
+			lc.allowCodeImport = true;
+			loader.loadBytes(fileMovie.data, lc);
         }
 		
 		private function onLoadMovieComplete(e:Event):void 
 		{
-			var loader:Loader = e.target.loader;
-			if (loader.loaderInfo.applicationDomain.hasDefinition("MovieMC")) {
-				var _class:Class = loader.loaderInfo.applicationDomain.getDefinition("MovieMC") as Class;
-				movie = new _class();
-				movie.stop();
-				movie_container.addChild(movie);
-				frameSlider.maximum = movie.totalFrames;
-				initPositionVector();
+			//trace("onLoadMovieComplete");
+			var info:LoaderInfo = e.target as LoaderInfo;
+			if (info.applicationDomain.hasDefinition("MovieMC")) {
+				var _class:Class = info.applicationDomain.getDefinition("MovieMC") as Class;
+				if (movieType == "final") {
+					movie = new _class();
+					movie.stop();
+					movie_container.addChild(movie);
+					totalFrames = frameSlider.maximum = movie.totalFrames;
+					loadMovieButton.enabled = false;
+					movie_container.visible = true;
+					movie_color_container.visible = false;
+					finalRadio.selected = true;
+					currentMovie = movie;
+					finalRadio.selected = finalRadio.enabled = true;
+				}else if (movieType == "color") {
+					movieColor = new _class();
+					movieColor.stop();
+					movie_color_container.addChild(movieColor);
+					totalFrames = frameSlider.maximum = movieColor.totalFrames;
+					loadMovieColorButton.enabled = false;
+					movie_container.visible = false;
+					movie_color_container.visible = true;
+					colorRadio.selected = true;
+					currentMovie = movieColor;
+					colorRadio.selected = colorRadio.enabled = true;
+				}
+				if (!position_vector) {
+					initPositionVector();
+				}
 			}else {
 				// error
 			}
 		}
 		
-		private function onLoadMovieColor(e:MouseEvent):void
-		{
-			
-		}
-		
 		private function initPositionVector():void 
 		{
 			position_vector = new Vector.<Object>;
-			for (var i:int = 0; i < movie.totalFrames; i++) 
+			for (var i:int = 0; i < totalFrames; i++) 
 			{
 				position_vector[i] = null;
 			}
@@ -207,10 +237,10 @@ package
 		
 		private function checkFrame():void
 		{
-			//trace("checkFrame : " + movie.currentFrame);
+			//trace("checkFrame : " + currentMovie.currentFrame);
 			if (!position_vector || !p4) return;
-			if (position_vector[movie.currentFrame-1]) {
-				p4.result = position_vector[movie.currentFrame-1];
+			if (position_vector[currentMovie.currentFrame-1]) {
+				p4.result = position_vector[currentMovie.currentFrame-1];
 				p4.visible = true;
 			}else {
 				p4.visible = false;
@@ -219,43 +249,31 @@ package
 		
 		private function onFrameSliderDrag(e:Event):void 
 		{
-			movie.stop();
-			movie.removeEventListener(Event.ENTER_FRAME, onMovieFrame);
+			currentMovie.stop();
+			currentMovie.removeEventListener(Event.ENTER_FRAME, onMovieFrame);
 		}
 		
 		private function onFrameSliderDrop(e:Event):void 
 		{
-			movie.gotoAndStop(Math.round(frameSlider.value));
+			currentMovie.gotoAndStop(Math.round(frameSlider.value));
 		}
 		
 		private function onFrameSliderChange(e:Event):void 
 		{
-			movie.gotoAndStop(Math.round(frameSlider.value));
+			currentMovie.gotoAndStop(Math.round(frameSlider.value));
 			checkFrame();
-		}
-		
-		private function onSWFLoadComplete(e:LoaderEvent):void 
-		{
-			var swfLoader:SWFLoader = e.target as SWFLoader;
-			var _class:Class = swfLoader.getClass("MovieMC") as Class;
-			movie = new _class();
-			movie.stop();
-			movie_container.addChild(movie);
-			frameSlider.maximum = movie.totalFrames
-			initPositionVector();
 		}
 		
 		private function onMovieFrame(e:Event):void 
 		{
-			frameSlider.value = movie.currentFrame;
+			if (movie_container.visible) {
+				currentMovie = movie;
+			}else {
+				currentMovie = movieColor;
+			}
+			
+			frameSlider.value = currentMovie.currentFrame;
 			checkFrame();
-			/*trace("onMovieFrame : " + movie.currentFrame);
-			if (movie.currentFrame == movie.totalFrames) {
-				movie.removeEventListener(Event.ENTER_FRAME, onMovieFrame);
-				movie.stop();
-				playButton.label = "Play";
-				playButton.selected = false;
-			}*/
 		}
 		
 		private function onExportClick(e:MouseEvent ):void 
@@ -335,8 +353,8 @@ package
 			var num:uint   = int(numberText.text);
 			var start:uint = int(startText.text);
 			var end:uint   = int(endText.text);
-			if (end > movie.totalFrames - 1) {
-				end = movie.totalFrames - 1;
+			if (end > currentMovie.totalFrames - 1) {
+				end = currentMovie.totalFrames - 1;
 				endText.text = String(end);
 			}
 			numberText.text = String(num);
@@ -365,11 +383,11 @@ package
 						}
 					}
 					
-					movie.addFrameScript(start, function():void {
-						movie.addFrameScript(movie.currentFrame-1, null);
+					currentMovie.addFrameScript(start, function():void {
+						currentMovie.addFrameScript(currentMovie.currentFrame-1, null);
 						checkFrame();
 					} );
-					movie.gotoAndStop(start + 1);
+					currentMovie.gotoAndStop(start + 1);
 					frameSlider.value = start + 1;
 					
 					stage.addEventListener(MouseEvent.CLICK, onStageClick);
@@ -385,7 +403,7 @@ package
 		private function onP4Call(type:String, obj:*= null):void 
 		{
 			if (type == Point4.POSITION_UPDATE) {
-				position_vector[movie.currentFrame-1] = p4.result;
+				position_vector[currentMovie.currentFrame-1] = p4.result;
 			}
 		}
 		
@@ -417,16 +435,30 @@ package
 				focusClip.x = Number(clipXText.text);
 				focusClip.y = Number(clipYText.text);
 				p4.update();
-				position_vector[movie.currentFrame-1] = p4.result;
+				position_vector[currentMovie.currentFrame - 1] = p4.result;
 			}
 		}
 		
 		private function onRadioClick(e:MouseEvent ):void 
 		{
-			
 			var radio:RadioButton = e.target as RadioButton;
-			trace(radio);
-			
+			if (radio == finalRadio) {
+				movie_container.visible = true;
+				movie_color_container.visible = false;
+				if (movie && movieColor) {
+					movieColor.stop();
+					movie.gotoAndStop(movieColor.currentFrame);
+				}
+				currentMovie = movie;
+			}else if (radio == colorRadio) {
+				movie_container.visible = false;
+				movie_color_container.visible = true;
+				if (movie && movieColor) {
+					movie.stop();
+					movieColor.gotoAndStop(movie.currentFrame);
+				}
+				currentMovie = movieColor;
+			}
 		}
 		
 		private function onShowClick(e:MouseEvent ):void 
@@ -454,62 +486,49 @@ package
 		private function onPlayClick(e:MouseEvent ):void 
 		{
 			// isPlaying - player 11
-			if (movie.isPlaying) {
+			if (currentMovie.isPlaying) {
 				playButton.label = "Play";
-				movie.stop();
-				movie.removeEventListener(Event.ENTER_FRAME, onMovieFrame);
+				currentMovie.stop();
+				currentMovie.removeEventListener(Event.ENTER_FRAME, onMovieFrame);
 			}else {
 				playButton.label = "Stop";
-				//if (movie.currentFrame == movie.totalFrames) {
-					//movie.gotoAndPlay(2); // 因為第 1 格有下 stop();
-				//}else {
-					movie.play();
-				//}
-				movie.addEventListener(Event.ENTER_FRAME, onMovieFrame);
+				currentMovie.play();
+				currentMovie.addEventListener(Event.ENTER_FRAME, onMovieFrame);
 			}
 		}
 		
 		private function onPrevClick(e:MouseEvent ):void 
 		{
-			movie.stop();
-			movie.addFrameScript(movie.currentFrame-2, function():void {
-				movie.addFrameScript(movie.currentFrame-1, null);
-				//trace("prev complete");
-				checkFrame();
-			} );
-			movie.prevFrame();
-			
-			frameSlider.value = movie.currentFrame;
-			playButton.label = "Play";
-			playButton.selected = false;
+			jumpToFrame("prev");
 		}
 		
 		private function onNextClick(e:MouseEvent ):void 
 		{
-			movie.stop();
-			movie.addFrameScript(movie.currentFrame, function():void {
-				movie.addFrameScript(movie.currentFrame-1, null);
-				//trace("next complete");
-				checkFrame();
-			} );
-			movie.nextFrame();
-			
-			frameSlider.value = movie.currentFrame;
-			playButton.label = "Play";
-			playButton.selected = false;
+			jumpToFrame("next");
 		}
 		
 		private function onJumpClick(e:MouseEvent ):void 
 		{
 			var toFrame:uint = int(frameText.text);
-			movie.stop();
-			movie.addFrameScript(toFrame-1, function():void {
-				movie.addFrameScript(movie.currentFrame-1, null);
-				//trace("jump complete");
+			jumpToFrame("jump", toFrame);
+		}
+		
+		private function jumpToFrame(action:String, frame:uint = 0):void
+		{
+			if (action == "prev") {
+				frame = currentMovie.currentFrame - 1;
+			}else if (action == "next") {
+				frame = currentMovie.currentFrame + 1;
+			}
+			
+			currentMovie.stop();
+			currentMovie.addFrameScript(frame - 1, function():void {
+				currentMovie.addFrameScript(currentMovie.currentFrame - 1, null);
 				checkFrame();
 			} );
-			movie.gotoAndStop(toFrame);
-			frameSlider.value = movie.currentFrame;
+			currentMovie.gotoAndStop(frame);
+			
+			frameSlider.value = currentMovie.currentFrame;
 			playButton.label = "Play";
 			playButton.selected = false;
 		}
