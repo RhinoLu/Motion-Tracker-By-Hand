@@ -98,6 +98,7 @@ package
 		
 		private function onPointUp(e:Event):void 
 		{
+			drawRect();
 			removeEventListener(Event.ENTER_FRAME, drawRect);
 			_signal.dispatch(Point4.POSITION_UPDATE);
 		}

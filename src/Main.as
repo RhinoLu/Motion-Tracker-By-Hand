@@ -11,6 +11,7 @@ package
 	import flash.display.StageAlign;
 	import flash.display.StageScaleMode;
 	import flash.events.Event;
+	import flash.events.KeyboardEvent;
 	import flash.events.MouseEvent;
 	import flash.geom.Point;
 	import flash.media.SoundMixer;
@@ -19,9 +20,9 @@ package
 	import flash.net.FileReference;
 	import flash.system.ApplicationDomain;
 	import flash.system.LoaderContext;
+	import flash.ui.Keyboard;
 	import net.hires.debug.Stats;
 	
-	// TODO 複製前一 frame position
 	/**
 	 * 每次處理一個編號
 	 */
@@ -45,6 +46,9 @@ package
 		private var finalRadio:RadioButton; // -------- 挖洞影片
 		private var colorRadio:RadioButton; // -------- 有色版影片
 		
+		private var duplicatePrevButton:PushButton; //  複製上一格座標
+		private var duplicateNextButton:PushButton; //  複製下一格座標
+		
 		private var playButton:PushButton; // --------- 播放/停止
 		private var prevButton:PushButton; // --------- 上一格
 		private var nextButton:PushButton; // --------- 下一格
@@ -52,9 +56,9 @@ package
 		private var frameText:InputText; // ----------- 目標 frame
 		
 		private var fileMovie:FileReference = new FileReference(); // 提出來避免被GC
-		private var movieType:String; // -------------- 
-		private var currentMovie:MovieClip; // -------- 
-		private var totalFrames:uint; // -------------- 
+		private var movieType:String; // -------------- 欲載入影片類型
+		private var currentMovie:MovieClip; // -------- 當前目標影片
+		private var totalFrames:uint; // -------------- 影片總 frame 數
 		
 		private var frameSlider:MyHUISlider; // ------- 目前 frmaeUI
 		
@@ -63,12 +67,12 @@ package
 		private var movie_color_container:Sprite; // -- 色版影片容器
 		private var movieColor:MovieClip; // ---------- 色版影片
 		
-		private var p4:Point4;
+		private var p4:Point4; // --------------------- 四點對位工具
 		private var point4_container:Sprite; // ------- 四點對位容器
 		
-		private var position_vector:Vector.<Object>;
+		private var position_vector:Vector.<Object>; // 座標 vector
 		
-		private var focusClip:PointClip;
+		private var focusClip:PointClip; // ----------- 目前選取 PointClip
 		
 		public function Main():void 
 		{
@@ -102,6 +106,21 @@ package
 			endText = new InputText(this , 400, 50, "End at");
 			endText.restrict = "0-9";
 			addButton = new PushButton(this, 400, 70, "Add" , onAddClick);
+			addButton.enabled = false;
+			
+			clipXText = new InputText(this , 565, 10);
+			clipXText.restrict = "0-9 . \\-";
+			clipXText.enabled = false;
+			clipYText = new InputText(this , 565, 30);
+			clipYText.restrict = "0-9 . \\-";
+			clipYText.enabled = false;
+			updateButton = new PushButton(this, 565, 50, "Update", onUpdateClick);
+			updateButton.enabled = false;
+			
+			duplicatePrevButton = new PushButton(this, 700, 10, "Copy Prev Frame", onDuplicatePrevClick);
+			duplicatePrevButton.enabled = false;
+			duplicateNextButton = new PushButton(this, 700, 35, "Copy Next Frame", onDuplicateNextClick);
+			duplicateNextButton.enabled = false;
 			
 			musicButton  = new PushButton(this, 860, 10, "Music ON", onMusicClick);
 			musicButton.toggle = true;
@@ -125,15 +144,6 @@ package
 			frameSlider.width = 990;
 			frameSlider.addEventListener("ON_DRAG", onFrameSliderDrag);
 			frameSlider.addEventListener("ON_DROP", onFrameSliderDrop);
-			
-			clipXText = new InputText(this , 565, 10);
-			clipXText.restrict = "0-9 . \\-";
-			clipXText.enabled = false;
-			clipYText = new InputText(this , 565, 30);
-			clipYText.restrict = "0-9 . \\-";
-			clipYText.enabled = false;
-			updateButton = new PushButton(this, 565, 50, "Update", onUpdateClick);
-			updateButton.enabled = false;
 			
 			movie_container = new Sprite();
 			movie_container.x = 0;
@@ -220,6 +230,7 @@ package
 				}
 				if (!position_vector) {
 					initPositionVector();
+					addButton.enabled = true;
 				}
 			}else {
 				// error
@@ -364,6 +375,9 @@ package
 			addPoint4(num, start, end, false);
 			
 			importButton.enabled = false;
+			addButton.enabled = false;
+			duplicatePrevButton.enabled = true;
+			duplicateNextButton.enabled = true;
 		}
 		
 		private function addPoint4(num:uint, start:uint, end:uint, isImport:Boolean):void
@@ -418,12 +432,51 @@ package
 					clipXText.enabled = clipYText.enabled = updateButton.enabled = true;
 					clipXText.text = String(focusClip.x);
 					clipYText.text = String(focusClip.y);
+					
+					// 偵聽鍵盤上下左右
+					stage.addEventListener(KeyboardEvent.KEY_DOWN, onKeyDown);
 				}
 			}else {
 				focusClip = null;
 				clipXText.enabled = clipYText.enabled = updateButton.enabled = false;
 				clipXText.text = "";
 				clipYText.text = "";
+				stage.removeEventListener(KeyboardEvent.KEY_DOWN, onKeyDown);
+			}
+		}
+		
+		private function onKeyDown(e:KeyboardEvent):void 
+		{
+			//trace("Key Pressed: " + String.fromCharCode(e.charCode) +" (character code: " + e.charCode + ")");
+			if (focusClip) {
+				if (e.keyCode == Keyboard.UP || e.keyCode == Keyboard.DOWN || e.keyCode == Keyboard.LEFT || e.keyCode == Keyboard.RIGHT) {
+					if (e.keyCode == Keyboard.UP)
+					{
+						//trace("上");
+						focusClip.y--;
+						clipYText.text = String(focusClip.y);
+					}else
+					if (e.keyCode == Keyboard.DOWN)
+					{ 
+						//trace("下");
+						focusClip.y++;
+						clipYText.text = String(focusClip.y);
+					}else
+					if (e.keyCode == Keyboard.LEFT)
+					{ 
+						//trace("左");
+						focusClip.x--;
+						clipXText.text = String(focusClip.x);
+					}else
+					if (e.keyCode == Keyboard.RIGHT)
+					{ 
+						//trace("右");
+						focusClip.x++;
+						clipXText.text = String(focusClip.x);
+					}
+					p4.update();
+					position_vector[currentMovie.currentFrame - 1] = p4.result;
+				}
 			}
 		}
 		
@@ -461,7 +514,35 @@ package
 			}
 		}
 		
-		private function onShowClick(e:MouseEvent ):void 
+		// 複製上一格資料
+		private function onDuplicatePrevClick(e:MouseEvent):void 
+		{
+			var cf:uint = currentMovie.currentFrame;
+			if (cf - 1 > int(startText.text) && cf - 1 <= int(endText.text)) {
+				var prev:Array = position_vector[cf - 2].pts;
+				position_vector[cf - 1].pts = prev.concat();
+				p4.result = position_vector[cf - 1];
+			}else {
+				// error
+				trace("error");
+			}
+		}
+		
+		// 複製下一格資料
+		private function onDuplicateNextClick(e:MouseEvent):void 
+		{
+			var cf:uint = currentMovie.currentFrame;
+			if (cf - 1 >= int(startText.text) && cf - 1 < int(endText.text)) {
+				var next:Array = position_vector[cf].pts;
+				position_vector[cf - 1].pts = next.concat();
+				p4.result = position_vector[cf - 1];
+			}else {
+				// error
+				trace("error");
+			}
+		}
+		
+		private function onShowClick(e:MouseEvent):void 
 		{
 			if (showButton.selected) {
 				showButton.label = "Show Point4";
