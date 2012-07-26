@@ -1,9 +1,11 @@
 <DOMDocument xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://ns.adobe.com/xfl/2008/" width="1000" height="600" frameRate="30" currentTimeline="1" xflVersion="2.1" creatorInfo="Adobe Flash Professional CS5.5" platform="Windows" versionInfo="Saved by Adobe Flash Windows 11.5 build 349" majorVersion="11" minorVersion="5" buildNumber="349" viewAngle3D="86.8503432264464" nextSceneIdentifier="2" playOptionsPlayLoop="false" playOptionsPlayPages="false" playOptionsPlayFrameActions="false">
      <media>
+          <DOMVideoItem name="final.flv" itemID="501100cf-000001e9" sourceExternalFilepath="E:/Lab_Flash/2012/07_19_Motion-Tracker-By-Hand/Motion-Tracker-By-Hand/asset/final.flv" sourceLastImported="1343291450" videoDataHRef="M 2 1343291599.dat" videoType="vp6 alpha media" fps="30" channels="0" width="550" height="400" length="2"/>
           <DOMVideoItem name="final_slow_final_42.flv" itemID="500cd455-000001e2" sourceExternalFilepath="../../../../../../project/2012/04_英特美_Omusic/material/video/final_slow_final_42.flv" sourceLastImported="1342176214" videoDataHRef="M 1 1343018069.dat" videoType="vp6 alpha media" fps="30" rate="44100" bits="16" channels="2" width="960" height="420" length="42.4333333333333"/>
      </media>
      <symbols>
-          <Include href="MovieMC.xml" itemID="500cd414-000001d8" lastModified="1343115918"/>
+          <Include href="MovieMC.xml" itemID="501100df-000001eb" lastModified="1343302436"/>
+          <Include href="MovieMC_bk.xml" loadImmediate="false" itemID="501100dd-000001ea" lastModified="1343291617"/>
      </symbols>
      <timelines>
           <DOMTimeline name="Scene 1">
@@ -12,7 +14,7 @@
                          <frames>
                               <DOMFrame index="0" keyMode="9728">
                                    <elements>
-                                        <DOMSymbolInstance libraryItemName="MovieMC" centerPoint3DX="480" centerPoint3DY="210">
+                                        <DOMSymbolInstance libraryItemName="MovieMC" selected="true" centerPoint3DX="480" centerPoint3DY="210">
                                              <transformationPoint>
                                                   <Point/>
                                              </transformationPoint>

@@ -357,6 +357,8 @@ package
 			}
 			addPoint4(num, start, end, true);
 			//t.obj(position_vector[0]);
+			duplicatePrevButton.enabled = true;
+			duplicateNextButton.enabled = true;
         }
 		
 		private function onAddClick(e:MouseEvent ):void 

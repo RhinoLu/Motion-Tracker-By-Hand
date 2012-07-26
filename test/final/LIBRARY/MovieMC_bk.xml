@@ -1,0 +1,27 @@
+<DOMSymbolItem xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://ns.adobe.com/xfl/2008/" name="MovieMC_bk" itemID="501100dd-000001ea" lastModified="1343291617">
+  <timeline>
+    <DOMTimeline name="MovieMC_bk" currentFrame="1">
+      <layers>
+        <DOMLayer name="Layer 2" color="#9933CC" locked="true" current="true" isSelected="true">
+          <frames>
+            <DOMFrame index="0" duration="1273" keyMode="9728">
+              <Actionscript>
+                <script><![CDATA[//stop();]]></script>
+              </Actionscript>
+              <elements/>
+            </DOMFrame>
+          </frames>
+        </DOMLayer>
+        <DOMLayer name="Layer 1" color="#4FFF4F" locked="true">
+          <frames>
+            <DOMFrame index="0" duration="1273" keyMode="9728">
+              <elements>
+                <DOMVideoInstance libraryItemName="final_slow_final_42.flv" frameRight="19200" frameBottom="8400"/>
+              </elements>
+            </DOMFrame>
+          </frames>
+        </DOMLayer>
+      </layers>
+    </DOMTimeline>
+  </timeline>
+</DOMSymbolItem>

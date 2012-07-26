@@ -1,0 +1,42 @@
+<DOMDocument xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://ns.adobe.com/xfl/2008/" frameRate="30" currentTimeline="1" xflVersion="2.1" creatorInfo="Adobe Flash Professional CS5.5" platform="Windows" versionInfo="Saved by Adobe Flash Windows 11.5 build 349" majorVersion="11" minorVersion="5" buildNumber="349" nextSceneIdentifier="2" playOptionsPlayLoop="false" playOptionsPlayPages="false" playOptionsPlayFrameActions="false">
+     <media>
+          <DOMBitmapItem name="pic1.png" itemID="501107ff-000001fb" linkageExportForAS="true" linkageClassName="PIC1" sourceExternalFilepath="./LIBRARY/pic1.png" sourceLastImported="1343293433" externalFileSize="73027" originalCompressionType="lossless" quality="50" href="pic1.png" bitmapDataHRef="M 2 1343293425.dat" frameRight="4780" frameBottom="3200"/>
+          <DOMBitmapItem name="pic2.png" itemID="501107ff-000001fc" linkageExportForAS="true" linkageClassName="PIC2" sourceExternalFilepath="./LIBRARY/pic2.png" sourceLastImported="1343293436" externalFileSize="51346" originalCompressionType="lossless" quality="50" href="pic2.png" bitmapDataHRef="M 1 1343293424.dat" frameRight="4780" frameBottom="3200"/>
+     </media>
+     <timelines>
+          <DOMTimeline name="Scene 1">
+               <layers>
+                    <DOMLayer name="Layer 1" color="#4FFF4F" current="true" isSelected="true">
+                         <frames>
+                              <DOMFrame index="0" keyMode="9728">
+                                   <elements/>
+                              </DOMFrame>
+                         </frames>
+                    </DOMLayer>
+               </layers>
+          </DOMTimeline>
+     </timelines>
+     <PrinterSettings/>
+     <publishHistory>
+          <PublishItem publishSize="38881" publishTime="1343306323"/>
+          <PublishItem publishSize="38883" publishTime="1343306201"/>
+          <PublishItem publishSize="38873" publishTime="1343306048"/>
+          <PublishItem publishSize="38875" publishTime="1343305834"/>
+          <PublishItem publishSize="38871" publishTime="1343305416"/>
+          <PublishItem publishSize="38871" publishTime="1343305413"/>
+          <PublishItem publishSize="38865" publishTime="1343305375"/>
+          <PublishItem publishSize="38848" publishTime="1343304994"/>
+          <PublishItem publishSize="38867" publishTime="1343304800"/>
+          <PublishItem publishSize="38864" publishTime="1343304708"/>
+          <PublishItem publishSize="38864" publishTime="1343304695"/>
+          <PublishItem publishSize="38863" publishTime="1343304667"/>
+          <PublishItem publishSize="38867" publishTime="1343304633"/>
+          <PublishItem publishSize="38861" publishTime="1343304580"/>
+          <PublishItem publishSize="38846" publishTime="1343304559"/>
+          <PublishItem publishSize="38833" publishTime="1343304425"/>
+          <PublishItem publishSize="38881" publishTime="1343304261"/>
+          <PublishItem publishSize="38836" publishTime="1343304140"/>
+          <PublishItem publishSize="38845" publishTime="1343304017"/>
+          <PublishItem publishSize="38846" publishTime="1343303996"/>
+     </publishHistory>
+</DOMDocument>
