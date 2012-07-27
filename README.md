@@ -26,3 +26,7 @@ Motion-Tracker-By-Hand
 - 顯示 XML
 - 很多動作需要重啟程式
 - 局部放大功能，類似 iPhone 放大鏡效果
+
+**如何使用匯出的 XML**
+
+- 參考[test]目錄裡的 Test.as

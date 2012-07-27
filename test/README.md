@@ -1,0 +1,6 @@
+- [color] : xfl, 匯出 color.swf (色版影片)
+- [final] : xfl, 匯出 final.swf (挖洞影片)
+- [image] : 圖片
+- [test] : xfl, 主程式，匯出 test.swf (最終成果)
+- [xml] : 對位資料
+- Test.as : 主程式 document class
